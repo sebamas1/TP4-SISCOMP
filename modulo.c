@@ -9,10 +9,26 @@
 #include <linux/delay.h>
 #include <linux/slab.h>
 #include <linux/gpio.h>
+#include <linux/uaccess.h>
+#include <linux/io.h>
+#include <linux/interrupt.h>
+#include <linux/irq.h>
+#include <linux/sched.h>
 
 static dev_t first;       // Global variable for the first device number
 static struct cdev c_dev; // Global variable for the character device structure
 static struct class *cl;  // Global variable for the device class
+
+/*
+Lee el pin pasado como argumento(string). Toma como argumento el pin.
+*/
+static char leer_pin(char *pin)
+{
+    char res;
+    printk(KERN_INFO "TP_FINAL: Leyendo pin %s\n", pin);
+    res = gpio_get_value(simple_strtoul(pin, NULL, 10));
+    return res;
+}
 
 static int my_open(struct inode *i, struct file *f)
 {
@@ -29,6 +45,23 @@ static ssize_t my_read(struct file *f, char __user *buf, size_t len, loff_t *off
 {
     printk(KERN_INFO "TP_FINAL: read()\n");
     return 0;
+}
+
+static void toggle_led(char *pin)
+{
+    char value = leer_pin(pin);
+    gpio_set_value(simple_strtoul(pin, NULL, 10), !value);
+}
+
+/*
+Esta funcion es un IRQ Handler, que se ejecuta cuando se recibe una interrupcion
+por el GPIO. Toggles el LED.
+*/
+static irq_handler_t my_irq_handler(unsigned int irq, void *dev_id, struct pt_regs *regs)
+{
+    printk(KERN_INFO "TP_FINAL: IRQ Handler\n");
+    toggle_led("24");
+    return (irq_handler_t)IRQ_HANDLED;
 }
 /*
 Configura e inicializa el pin pasado como argumento(string). Toma como argumento in o out
@@ -72,36 +105,21 @@ static void setear_pin(char *pin, char *valor)
     }
 }
 /*
-Lee el pin pasado como argumento(string). Toma como argumento el pin.
+Activa interrupciones por el GPIO pasado como argumento(string). Toma como argumento el pin.
 */
-static char leer_pin(char *pin)
+static void activar_interrupcion(char *pin)
 {
-    char res;
-    printk(KERN_INFO "TP_FINAL: Leyendo pin %s\n", pin);
-    res = gpio_get_value(simple_strtoul(pin, NULL, 10));
-    return res;
+    int irq;
+    printk(KERN_INFO "TP_FINAL: Activando interrupciones por el pin %s\n", pin);
+    irq = gpio_to_irq(simple_strtoul(pin, NULL, 10));
+    if (request_irq(irq, (irq_handler_t)my_irq_handler, IRQF_TRIGGER_RISING, "my_gpio_handler", NULL))
+    {
+        printk(KERN_INFO "TP_FINAL: Error al solicitar la interrupcion\n");
+    }
 }
 
 static ssize_t my_write(struct file *f, const char __user *buf, size_t len, loff_t *off)
 {
-    int i = 0;
-    int aux = 30;
-    inicializar_pin("24", "out");
-    setear_pin("24", "1");
-    inicializar_pin("23", "in");
-    while (i < aux)
-    {
-        if (leer_pin("23") == 1)
-        {
-            setear_pin("24", "0");
-        }
-        else
-        {
-            setear_pin("24", "1");
-        }
-        msleep(1000);
-	i++;
-    }
 
     printk(KERN_INFO "finalizando write\n");
     // And exit
@@ -149,6 +167,10 @@ static int __init drv2_init(void) /* Constructor */
         unregister_chrdev_region(first, 1);
         return ret;
     }
+
+    inicializar_pin("24", "out");
+    setear_pin("24", "1");
+    activar_interrupcion("23");
     return 0;
 }
 
