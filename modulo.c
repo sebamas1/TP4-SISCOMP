@@ -14,10 +14,12 @@
 #include <linux/interrupt.h>
 #include <linux/irq.h>
 #include <linux/sched.h>
+#include <linux/string.h>
 
 static dev_t first;       // Global variable for the first device number
 static struct cdev c_dev; // Global variable for the character device structure
 static struct class *cl;  // Global variable for the device class
+int numbers[10];
 
 /*
 Lee el pin pasado como argumento(string). Toma como argumento el pin.
@@ -40,18 +42,106 @@ static int my_close(struct inode *i, struct file *f)
     printk(KERN_INFO "TP_FINAL: close()\n");
     return 0;
 }
-
+/*
 static ssize_t my_read(struct file *f, char __user *buf, size_t len, loff_t *off)
 {
+    int i;
+    int res;
+    char *valores = "0123456789";
+    char *valor;
     printk(KERN_INFO "TP_FINAL: read()\n");
-    return 0;
+    if (*off >= 10)
+        return 0;
+    valor = kmalloc(sizeof(char), GFP_KERNEL);
+    for (i = 0; i < 10; i++)
+    {
+        valor[i] = valores[i];
+    }
+    res = copy_to_user(buf, valor, 10);
+    *off += 1;
+    kfree(valor);
+    return 105;
+}*/
+
+static ssize_t my_read(struct file *f, char __user *buf, size_t len, loff_t *off)
+{    
+    printk(KERN_INFO "TP_FINAL: \n");
+    printk(KERN_INFO "TP_FINAL: ---------------imprimir array de numeros---------------\n");
+    char *valorNumero;
+    char str[100];
+    sprintf(str, "%d,", numbers[0]);
+    int i;
+    int res;
+    for(i=1; i<10; i++){
+        char buffer_Numero[10];
+        if(i==9){
+             sprintf(buffer_Numero, "%d", numbers[9]);
+        } else {
+            sprintf(buffer_Numero, "%d,", numbers[i]);
+        }
+        strcat(str, buffer_Numero);
+        printk(KERN_INFO "TP_FINAL: %s\n", str);
+    }
+    printk(KERN_INFO "TP_FINAL: %s\n", str);
+
+
+    if (*off >= 10)
+        return 0;
+
+
+    int nr_bytes;
+    nr_bytes = strlen(str);
+    printk(KERN_INFO "TP_FINAL: nr_bytes: %d\n", nr_bytes);
+    res = copy_to_user(buf, str, nr_bytes);
+    *off += len;
+    return nr_bytes;
+
+
+/*
+
+    valorNumero = kmalloc(sizeof(str), GFP_KERNEL);
+    for (i = 0; i < 10; i++)
+    {
+        valorNumero[i] = numbers[i];
+        printk(KERN_INFO "TP_FINAL: buffer: %d\n", valorNumero[i]);
+        
+    }
+    res = copy_to_user(buf, valorNumero, 10);
+    printk(KERN_INFO "TP_FINAL: \n");
+    printk(KERN_INFO "TP_FINAL: valorvalorNumero es %c: \n", valorNumero);
+    *off += 1;
+    kfree(valorNumero);
+    printk(KERN_INFO "TP_FINAL: ------------------------------\n");
+    printk(KERN_INFO "TP_FINAL: \n");
+    return 105;*/
 }
+
 
 static void toggle_led(char *pin)
 {
     char value = leer_pin(pin);
     gpio_set_value(simple_strtoul(pin, NULL, 10), !value);
 }
+
+static void generate_numbers(void){
+    //array 10 posiciones para guardar los numeros aleatorios del 15 al 30
+    
+    int i;
+    for(i=0; i<10; i++){        
+        unsigned int rand;
+        get_random_bytes(&rand, sizeof(rand));
+        rand%=35;
+        if(rand<15){
+            rand+=15;
+        }
+        /*char buffer_k[10];
+        sprintf(buffer_k, "%d", (int)rand);
+        numbers[i] = *buffer_k;*/
+        numbers[i] = (int)rand;
+    }
+        
+}
+
 
 /*
 Esta funcion es un IRQ Handler, que se ejecuta cuando se recibe una interrupcion
@@ -61,6 +151,7 @@ static irq_handler_t my_irq_handler(unsigned int irq, void *dev_id, struct pt_re
 {
     printk(KERN_INFO "TP_FINAL: IRQ Handler\n");
     toggle_led("24");
+    generate_numbers();
     return (irq_handler_t)IRQ_HANDLED;
 }
 /*
@@ -120,7 +211,6 @@ static void activar_interrupcion(char *pin)
 
 static ssize_t my_write(struct file *f, const char __user *buf, size_t len, loff_t *off)
 {
-
     printk(KERN_INFO "finalizando write\n");
     // And exit
     return 1;
