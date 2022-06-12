@@ -70,13 +70,16 @@ static ssize_t my_read(struct file *f, char __user *buf, size_t len, loff_t *off
     printk(KERN_INFO "TP_FINAL: ---------------imprimir array de numeros---------------\n");
     char *valorNumero;
     char str[100];
+    char *t;
     if(tipo == 1){
-        strcat(str, "C");
+        t = "C";
+       
     } else {
-        strcat(str, "T");
+        t = "T";
+       
     }
     
-    sprintf(str, "%d,", numbers[0]);
+    sprintf(str, "%s%d,", t, numbers[0]);
     int i;
     int res;
     for(i=1; i<10; i++){
@@ -87,7 +90,6 @@ static ssize_t my_read(struct file *f, char __user *buf, size_t len, loff_t *off
             sprintf(buffer_Numero, "%d,", numbers[i]);
         }
         strcat(str, buffer_Numero);
-       // printk(KERN_INFO "TP_FINAL: %s\n", str);
     }
     printk(KERN_INFO "TP_FINAL: %s\n", str);
     
@@ -98,9 +100,9 @@ static ssize_t my_read(struct file *f, char __user *buf, size_t len, loff_t *off
 
     int nr_bytes;
     nr_bytes = strlen(str);
-    //printk(KERN_INFO "TP_FINAL: nr_bytes: %d\n", nr_bytes);
     res = copy_to_user(buf, str, nr_bytes);
     *off += len;
+    
     return nr_bytes;
 
 }
@@ -110,6 +112,11 @@ static void toggle_led(char *pin)
 {
     char value = leer_pin(pin);
     gpio_set_value(simple_strtoul(pin, NULL, 10), !value);
+    if(tipo == 1){
+        tipo = 0;
+    } else {
+        tipo = 1;
+    }
 }
 
 static void generate_numbers(int min, int max){
@@ -139,10 +146,9 @@ static irq_handler_t my_irq_handler(unsigned int irq, void *dev_id, struct pt_re
     toggle_led("24");
     if(tipo == 0){ //Temperaturas
         generate_numbers(15, 30);
-        tipo = 1;
     } else { //Caudal
         generate_numbers(10000, 18000);
-        tipo = 0;
+ 
     }
     
   //  generate_numbers();
