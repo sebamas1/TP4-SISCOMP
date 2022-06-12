@@ -70,7 +70,7 @@ static ssize_t my_read(struct file *f, char __user *buf, size_t len, loff_t *off
     printk(KERN_INFO "TP_FINAL: ---------------imprimir array de numeros---------------\n");
     char *valorNumero;
     char str[100];
-    if(tipo){
+    if(tipo == 1){
         strcat(str, "C");
     } else {
         strcat(str, "T");
@@ -87,10 +87,10 @@ static ssize_t my_read(struct file *f, char __user *buf, size_t len, loff_t *off
             sprintf(buffer_Numero, "%d,", numbers[i]);
         }
         strcat(str, buffer_Numero);
-        printk(KERN_INFO "TP_FINAL: %s\n", str);
+       // printk(KERN_INFO "TP_FINAL: %s\n", str);
     }
     printk(KERN_INFO "TP_FINAL: %s\n", str);
-
+    
 
     if (*off >= 10)
         return 0;
@@ -98,7 +98,7 @@ static ssize_t my_read(struct file *f, char __user *buf, size_t len, loff_t *off
 
     int nr_bytes;
     nr_bytes = strlen(str);
-    printk(KERN_INFO "TP_FINAL: nr_bytes: %d\n", nr_bytes);
+    //printk(KERN_INFO "TP_FINAL: nr_bytes: %d\n", nr_bytes);
     res = copy_to_user(buf, str, nr_bytes);
     *off += len;
     return nr_bytes;
@@ -139,10 +139,12 @@ static irq_handler_t my_irq_handler(unsigned int irq, void *dev_id, struct pt_re
     toggle_led("24");
     if(tipo == 0){ //Temperaturas
         generate_numbers(15, 30);
+        tipo = 1;
     } else { //Caudal
         generate_numbers(10000, 18000);
+        tipo = 0;
     }
-    tipo = !tipo;
+    
   //  generate_numbers();
     return (irq_handler_t)IRQ_HANDLED;
 }

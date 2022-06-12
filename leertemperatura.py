@@ -5,7 +5,7 @@ import subprocess
 Y = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 while(True):
 
-    contenido = subprocess.run(['cat', '/dev/TP_FINAL'], stdout=subprocess.PIPE).stdout.decode('utf-8').strip()
+    contenido = subprocess.run(['cat', 'temperaturas.txt'], stdout=subprocess.PIPE).stdout.decode('utf-8').strip()
     X = np.asarray(contenido.split(','))
     substring = "T"
     if substring in X[0]:
