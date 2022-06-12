@@ -1,3 +1,4 @@
+make clean
 make
 rmmod modulo
 
