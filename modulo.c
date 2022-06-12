@@ -20,6 +20,7 @@ static dev_t first;       // Global variable for the first device number
 static struct cdev c_dev; // Global variable for the character device structure
 static struct class *cl;  // Global variable for the device class
 int numbers[10];
+int tipo = 0;
 
 /*
 Lee el pin pasado como argumento(string). Toma como argumento el pin.
@@ -69,6 +70,12 @@ static ssize_t my_read(struct file *f, char __user *buf, size_t len, loff_t *off
     printk(KERN_INFO "TP_FINAL: ---------------imprimir array de numeros---------------\n");
     char *valorNumero;
     char str[100];
+    if(tipo){
+        strcat(str, "C");
+    } else {
+        strcat(str, "T");
+    }
+    
     sprintf(str, "%d,", numbers[0]);
     int i;
     int res;
@@ -96,24 +103,6 @@ static ssize_t my_read(struct file *f, char __user *buf, size_t len, loff_t *off
     *off += len;
     return nr_bytes;
 
-
-/*
-
-    valorNumero = kmalloc(sizeof(str), GFP_KERNEL);
-    for (i = 0; i < 10; i++)
-    {
-        valorNumero[i] = numbers[i];
-        printk(KERN_INFO "TP_FINAL: buffer: %d\n", valorNumero[i]);
-        
-    }
-    res = copy_to_user(buf, valorNumero, 10);
-    printk(KERN_INFO "TP_FINAL: \n");
-    printk(KERN_INFO "TP_FINAL: valorvalorNumero es %c: \n", valorNumero);
-    *off += 1;
-    kfree(valorNumero);
-    printk(KERN_INFO "TP_FINAL: ------------------------------\n");
-    printk(KERN_INFO "TP_FINAL: \n");
-    return 105;*/
 }
 
 
@@ -123,20 +112,17 @@ static void toggle_led(char *pin)
     gpio_set_value(simple_strtoul(pin, NULL, 10), !value);
 }
 
-static void generate_numbers(void){
+static void generate_numbers(int min, int max){
     //array 10 posiciones para guardar los numeros aleatorios del 15 al 30
     
     int i;
     for(i=0; i<10; i++){        
         unsigned int rand;
         get_random_bytes(&rand, sizeof(rand));
-        rand%=35;
-        if(rand<15){
-            rand+=15;
+        rand%=max;
+        if(rand<min){
+            rand+=min;
         }
-        /*char buffer_k[10];
-        sprintf(buffer_k, "%d", (int)rand);
-        numbers[i] = *buffer_k;*/
         numbers[i] = (int)rand;
     }
         
@@ -151,7 +137,13 @@ static irq_handler_t my_irq_handler(unsigned int irq, void *dev_id, struct pt_re
 {
     printk(KERN_INFO "TP_FINAL: IRQ Handler\n");
     toggle_led("24");
-    generate_numbers();
+    if(tipo == 0){ //Temperaturas
+        generate_numbers(15, 30);
+    } else { //Caudal
+        generate_numbers(10000, 18000);
+    }
+    tipo = !tipo;
+  //  generate_numbers();
     return (irq_handler_t)IRQ_HANDLED;
 }
 /*
