@@ -87,10 +87,10 @@ static ssize_t my_read(struct file *f, char __user *buf, size_t len, loff_t *off
             sprintf(buffer_Numero, "%d,", numbers[i]);
         }
         strcat(str, buffer_Numero);
-        printk(KERN_INFO "TP_FINAL: %s\n", str);
+       // printk(KERN_INFO "TP_FINAL: %s\n", str);
     }
     printk(KERN_INFO "TP_FINAL: %s\n", str);
-
+    
 
     if (*off >= 10)
         return 0;
@@ -98,7 +98,7 @@ static ssize_t my_read(struct file *f, char __user *buf, size_t len, loff_t *off
 
     int nr_bytes;
     nr_bytes = strlen(str);
-    printk(KERN_INFO "TP_FINAL: nr_bytes: %d\n", nr_bytes);
+    //printk(KERN_INFO "TP_FINAL: nr_bytes: %d\n", nr_bytes);
     res = copy_to_user(buf, str, nr_bytes);
     *off += len;
     return nr_bytes;
